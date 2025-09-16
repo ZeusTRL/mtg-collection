@@ -1,0 +1,6 @@
+# docker volumes / data caches
+**/.DS_Store
+**/Thumbs.db
+.env
+dbdata/
+noco_data/

@@ -1,0 +1,53 @@
+# version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: mtg_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mtg
+      POSTGRES_PASSWORD: mtgpass
+      POSTGRES_DB: mtg
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    ports:
+      - "5432:5432"
+
+  noco:
+    image: nocodb/nocodb:latest
+    container_name: mtg_nocodb
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      NC_PUBLIC_URL: "http://localhost:8080"
+      # NC_ADMIN_EMAIL: "you@example.com"
+      # NC_ADMIN_PASSWORD: "change-me"
+    ports:
+      - "8080:8080"
+    volumes:
+      - noco_data:/usr/app/data
+
+  importer:
+    image: python:3.11-slim
+    container_name: mtg_importer
+    depends_on:
+      - db
+    working_dir: /app
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: mtg
+      PGUSER: mtg
+      PGPASSWORD: mtgpass
+      MTGJSON_URL: "https://mtgjson.com/api/v5/AllPrintings.json.zip"
+      BATCH_SIZE: "2000"
+    volumes:
+      - ./import:/app
+    command: ["bash", "-lc", "pip install -r requirements.txt && python import.py"]
+
+volumes:
+  dbdata:
+  noco_data:
